@@ -1,0 +1,50 @@
+name: Sync Fork
+
+on:
+  schedule:
+  - cron: "0 0 1 * *"
+  workflow_dispatch:
+
+env:
+  src_repo: torrust/torrust-tracker
+
+jobs:
+  repo_sync:
+    runs-on: ubuntu-latest
+    outputs:
+      new_tags: ${{ steps.repo_sync.outputs.new_tags }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: ${{ env.src_repo }}
+          fetch-depth: 0
+      - name: get current branch name
+        run: |
+          branch_name=$(git branch --show-current)
+          echo "$branch_name"
+          echo "branch=$branch_name" >> $GITHUB_ENV
+      - name: repo sync
+        id: repo_sync
+        run: |
+          echo "Resetting origin to: https://github.com/${{ github.repository }}"
+          git remote set-url origin "https://github.com/${{ github.repository }}"
+          push_result=$(git push origin ${{ env.branch }} --tags --force 2>&1)
+          echo git: $push_result
+          filtered=$(echo "$push_result" | grep -e "new tag.*v.* -> v.*" | grep -o " -> v.*" | grep -o "v.*" | cat)
+          echo "new_tags: $filtered"
+          tags=""
+          while read -r x; do tags="${tags},\"${x}\""; done <<< "$filtered"
+          echo "tags=$tags"
+          echo "new_tags=[${tags:1}]" >> "$GITHUB_OUTPUT"
+      - name: log
+        run: echo ${{ steps.repo_sync.outputs.new_tags }}
+  call_create_release:
+    name: call workflow create_release
+    strategy:
+      matrix:
+        tag_name: ${{ fromJSON(needs.repo_sync.outputs.new_tags) }}
+    uses: ./.github/workflows/create_release.yml
+    needs: repo_sync
+    with:
+      tag_name: ${{ matrix.tag_name }}
+

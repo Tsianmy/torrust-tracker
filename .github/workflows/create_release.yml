@@ -1,0 +1,38 @@
+name: Create Release
+
+on:
+  workflow_call:
+    inputs:
+      tag_name:
+        required: true
+        type: string
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        required: true
+        type: string
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  create_release:
+    runs-on: ubuntu-latest
+    if: startsWith(inputs.tag_name, 'v')
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        ref: ${{ inputs.tag_name }}
+    - name: Run build
+      run: |
+        cargo build --verbose --release
+    - name: Archive Asset
+      run: |
+        zip linux_x86_64_bin -9 -r ./target/release -x "*.d" "*.rlib" \
+          "target/release/.*" "target/release/build/*" "target/release/deps/*" "target/release/examples" "target/release/incremental"
+    - name: Create Release
+      id: create_release
+      uses: softprops/action-gh-release@v2
+      with:
+        files: linux_x86_64_bin.zip
+        tag_name: ${{ inputs.tag_name }}
