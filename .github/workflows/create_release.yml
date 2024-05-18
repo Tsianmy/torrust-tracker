@@ -29,7 +29,7 @@ jobs:
     - name: Archive Asset
       run: |
         zip linux_x86_64_bin -9 -r ./target/release -x "*.d" "*.rlib" \
-          "target/release/.*" "target/release/build/*" "target/release/deps/*" "target/release/examples" "target/release/incremental"
+          "target/release/.*" "target/release/build/*" "target/release/deps/*" "target/release/examples/*" "target/release/incremental/*"
     - name: Create Release
       id: create_release
       uses: softprops/action-gh-release@v2
