@@ -10,6 +10,7 @@ env:
 
 jobs:
   repo_sync:
+    name: repo sync
     runs-on: ubuntu-latest
     outputs:
       new_tags: ${{ steps.repo_sync.outputs.new_tags }}
@@ -18,6 +19,7 @@ jobs:
         with:
           repository: ${{ env.src_repo }}
           fetch-depth: 0
+          token: ${{ secrets.WORKFLOW_TOKEN }}
       - name: get current branch name
         run: |
           branch_name=$(git branch --show-current)
@@ -39,7 +41,7 @@ jobs:
       - name: log
         run: echo ${{ steps.repo_sync.outputs.new_tags }}
   call_create_release:
-    name: call workflow create_release
+    name: call create_release
     strategy:
       matrix:
         tag_name: ${{ fromJSON(needs.repo_sync.outputs.new_tags) }}
