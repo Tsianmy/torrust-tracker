@@ -1,0 +1,29 @@
+name: Nightly Release
+
+on:
+  workflow_call:
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  create_release:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Run build
+      run: |
+        cargo build --verbose --release
+    - name: Archive Asset
+      run: |
+        artifact_name="$(uname)_$(uname -m)_bin.zip"
+        echo "artifact_name=$artifact_name" >> $GITHUB_ENV
+        zip $artifact_name -9 -r ./target/release -x "*.d" "*.rlib" \
+          "target/release/.*" "target/release/build/*" "target/release/deps/*" "target/release/examples/*" "target/release/incremental/*"
+    - name: Create Release
+      id: create_release
+      uses: softprops/action-gh-release@v2
+      with:
+        files: ${{ env.artifact_name }}
+        tag_name: nightly
